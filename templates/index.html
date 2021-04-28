@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin=""/>
+     <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin="">
+    </script>
+    <script src="https://unpkg.com/proj4"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+    <style>
+
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body, #mapid {
+            height: 100%;
+            width: 100%;
+        }
+
+    </style>
+    <title>Document</title>
+</head>
+<body>
+    <div id="mapid"></div>
+    <script>
+        var mymap = L.map('mapid').setView([43.079, 131.883], 10);
+
+        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            crs: L.CRS.EPSG4326,
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: 'pk.eyJ1IjoicGlrdmljIiwiYSI6ImNrbmg2OG5obDB4ejMyeG53a2dneWQ3ZjcifQ.sIAGARTv1xvoqlCe0hghGA'
+        }).addTo(mymap);
+
+        var popup = L.popup();
+
+        var polygons = []
+        var thumbs = []
+
+        async function onMapClick(e) {
+            
+            popup
+                .setLatLng(e.latlng)
+                .setContent("Загрузка последнего снимка для координат " + e.latlng.toString())
+                .openOn(mymap);
+
+            console.log(e.latlng)
+
+            url = "http://127.0.0.1:8000/getpathrow?lon=" + e.latlng.lng + "&lat=" + e.latlng.lat
+
+            let response = await fetch(url);
+            if (response.ok) {
+            
+                let json = await response.json();
+                console.log(json)
+                
+                for (var i = 0; i< polygons.length; i++) {
+                    polygons[i].remove()
+                }
+                polygons.splice(0, polygons.length)
+
+                for (var i = 0; i< thumbs.length; i++) {
+                    thumbs[i].remove()
+                }
+                thumbs.splice(0, thumbs.length)
+                
+                message = ""
+                for (var i = 0; i < json.length; i++) {
+                    message += "Path: " + json[i]["path"] + " Row: " + json[i]["row"] + "<br>Date: "+ json[i]["datetime"] + "<br>"
+                    var polygon = L.polygon(json[i]["polygon"]).addTo(mymap);
+                    polygons.push(polygon)
+
+                    var imageUrl = json[i]["thumb"];
+                    var imageBounds = json[i]["bbox"];
+                    var image = L.imageOverlay(imageUrl, imageBounds, {"opacity": 0.8}).addTo(mymap);
+                    thumbs.push(image)
+                }
+                
+                // var url_to_geotiff_file = "https://s3-us-west-2.amazonaws.com/landsat-pds/L8/114/030/LC81140302015011LGN00/LC81140302015011LGN00_B8.TIF";
+
+                    
+                // parseGeoraster(url_to_geotiff_file).then(georaster => {
+                //     console.log("georaster:", georaster);
+                //     var layer = new GeoRasterLayer({
+                //         attribution: "Planet",
+                //         georaster: georaster,
+                //         resolution: 128,
+                //         pixelValuesToColorFn: values => {
+                //             value = Math.round((values[0] / 32767) * 255).toString(16)
+                //             return "#" + value + value + value
+                //             console.log(value)
+                //         }
+                //     });
+                //     layer.addTo(mymap);
+
+                //     //map.fitBounds(layer.getBounds());
+
+                // });
+
+
+
+                popup
+                    .setLatLng(e.latlng)
+                    .setContent(message)
+                    .openOn(mymap);
+
+            } else {
+                alert("Ошибка HTTP: " + response.status);
+            }
+        }
+
+        mymap.on('click', onMapClick);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+Backend
+- Catalog
+- Index
+- TaskManager (Queue+Workers)
+- Serve requests
+
+Catalog
+- search by ROI and dates
+- pull + parse metadata
+
+Index
+- index to odc
+- stac2odc metadata converter
+
+TaskManager
+- create and monitor tasks
+- use odc to get data
+- process and return result
+
+WebApp
+- Form for search in catalogs
+- List with results
+- Info about item
+- Show preview on map
+- Select items to cart
+- Processing form: choose algorithm and params
+- Show result
