@@ -1,23 +1,23 @@
 from urllib.parse import urlparse
 import requests
-from pystac import STAC_IO
-from pystac import Catalog
+from pystac import STAC_IO, Catalog
+
 
 def requests_read_method(uri):
     parsed = urlparse(uri)
-    print(parsed)
     if parsed.scheme.startswith('http'):
         return requests.get(uri).text
     else:
         return STAC_IO.default_read_text_method(uri)
 
-def stac_test():
-    path, row = '010', '117'
-    url = f'https://landsat-stac.s3.amazonaws.com/landsat-8-l1/{path}/{row}/catalog.json'
-    cat = Catalog.from_file(url)
 
-    #for item in cat.get_items():
-    #    print(item.id)
-    return True
+def get(path, row):
+    url = f"https://landsat-stac.s3.amazonaws.com/landsat-8-l1/{path:03d}/{row:03d}/catalog.json"
+    cat = Catalog.from_file('https://landsat-stac.s3.amazonaws.com/catalog.json')
+    item = next(cat.get_children())
+    for item in item.get_children():
+        print(item)
 
-STAC_IO.read_text_method = requests_read_method
+if __name__ == "__main__":
+    STAC_IO.read_text_method = requests_read_method
+    get(17, 110)

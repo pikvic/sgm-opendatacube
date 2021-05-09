@@ -3,6 +3,7 @@ import os
 from osgeo import ogr
 import shapely.wkt
 import shapely.geometry
+from shapely import speedups
 import json
 import requests
 from pathlib import Path
@@ -38,6 +39,7 @@ class ConvertToWRS:
         shapefile is in the same directory.
         """
         # Open the shapefile
+        speedups.disable()
         self.shapefile = ogr.Open(str(shapefile))
         # Get the only layer within it
         self.layer = self.shapefile.GetLayer(0)
@@ -84,6 +86,22 @@ class ConvertToWRS:
                 res.append({'polygon': poly[0], 'path': poly[1], 'row': poly[2]})
 
         # Return the results list to the user
+        return res
+
+    def get_wrs_list(self, lon1, lat1, lon2, lat2):
+        points = [
+            (lon1, lat1),
+            (lon1, lat2),
+            (lon2, lat2),
+            (lon1, lat2)
+        ]
+        box = shapely.geometry.Polygon(points)
+        print(box.bounds)
+        res = []
+        for poly in self.polygons:
+            if box.intersects(poly[0]):
+                res.append({'polygon': poly[0], 'path': poly[1], 'row': poly[2]})
+
         return res
 
 def get_thumb(path, row):
