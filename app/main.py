@@ -2,27 +2,47 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from .core.helpers import getpathrow
-from .core.stac import stac_test
 
+from app.core.catalog import get_items
+from app.core.helpers import ConvertToWRS
 
+from pathlib import Path
+import app.core.config as config
+
+if not config.STAC_CACHE_DIR.exists():
+    config.STAC_CACHE_DIR.mkdir()
+
+print("Loading WRS...", end='')
+wrs = ConvertToWRS()
+print("OK")
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
 templates = Jinja2Templates(directory="templates")
-
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", context={"request": request})
 
-@app.get("/getpathrow")
-async def get_path_row(lon: float, lat: float):
-    return getpathrow(lon, lat)
+@app.get("/catalog/getforpoint")
+async def getforpoint(lon: float, lat: float, date1: str = None, date2: str = None, limit = None):
+    wrs_list = wrs.get_wrs(lat, lon)
+    if not date1 or not date2:
+        dates = None
+    else:
+        dates = (date1, date2)
+    return await get_items(wrs_list, dates=dates, limit=10)
     
-@app.get("/stac")
-async def stac():
-    return {"result": stac_test()}
+@app.get("/catalog/getforregion")
+async def getforregion(lon1: float, lat1: float, lon2: float, lat2: float, date1: str = None, date2: str = None, limit = None):
+    lon1, lon2 = min(lon1, lon2), max(lon1, lon2)
+    lat1, lat2 = min(lat1, lat2), max(lat1, lat2)
+    if not date1 or not date2:
+        dates = None
+    else:
+        dates = (date1, date2)
+    wrs_list = wrs.get_wrs_list(lon1,lat1, lon2, lat2)
+
+    return await get_items(wrs_list, dates=dates, limit=10)
