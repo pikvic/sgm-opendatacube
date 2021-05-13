@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 .vscode
 *.whl
-*.ipynb
 stac_cache
 
 # C extensions
